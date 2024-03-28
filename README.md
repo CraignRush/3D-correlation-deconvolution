@@ -1,21 +1,28 @@
 # 3D-correlation-deconvonvolution
+This is a lightweight repository (with the _awesome_ code of https://github.com/hammerlab/flowdec/) for the deconvolution of a Leica *.lif file comprised of individual multichannel stacks per FOV.
+
+Actually, this code could be improved by using only its PSF-generation capabilities and then the deconvolution of cucim.skimage.resotration.richardson_lucy! However, I never had time to go down that rabbit hole...
+
+The most complicated part is probably the installation of GPU-supported tensorflow. For linux machines, it should be straight forward by installing the Nvidia drivers (same link as for winows below) and installing ```pip install tensorflow[and-cuda]```
+
 
 ## Installation of GPU/CUDA-support on a windows 10 (or higher) machine, and with Visual Studio Code
+This is not the typical installation required for tensorflow as here: https://www.tensorflow.org/install/pip. However, these tutorials didn't work for me properly (and according to the number of stackoverflow articles a bunch of others...)
 
-1. Install the recent Nvidia drivers from here
+1. #### Install the recent Nvidia drivers
    https://www.nvidia.com/Download/index.aspx?lang=en-us
    
-1. Install the WSL2 environment (if you don't have already)
+1. #### Install the WSL2 environment (if you don't have already)
    Open a powershell as administrator and execute
 
     ```sh
     wsl --install ##Install WSL
-    wsl -l -v # Check that WSL2 is used! if not: wsl --set-version 2
     wsl --update # Ensure that you have the latest kernel
+    wsl -l -v # Check that WSL2 is used! if not: wsl --set-version <Distro> <Version>
    ```
     This command will enable the features necessary to run WSL and install the Ubuntu distribution of Linux.
    
-1. Install the current Nvidia CUDA drivers in the WSL
+1. #### Install the current Nvidia CUDA drivers in the WSL
    Go into WSL2 by executing this in a powershell or terminal
    ```sh
    wsl
@@ -35,7 +42,7 @@
    ```sh
    nvidia-smi
    ```
-1. Create a suitable conda enviromment and test if it uses the graphics card properly
+1. #### Create a suitable conda enviromment and test if it uses the graphics card properly
    (reference: https://medium.com/@MemoonaTahira/installing-tensorflow-with-gpu-support-on-windows-wsl-in-2022-a9c4a064678b)
 
    First, install Miniconda in the WSL
@@ -77,3 +84,13 @@
     # Verify the install uses GPU (this command should return a list of GPU devices):
     python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
      ```
+
+   ### If that worked, great, you now can work on your GPU! :D
+
+   ### But we still need a code editor to run our scripts:
+
+   1. ##### Install VS Code as usual on your windows machine
+   1. ##### Add the extensions "Jupyter" and "Python" (both from microsoft)
+   1. ##### Click onto the green button in the bottom left corner and connect to the WSL
+   1. ##### Now you can clone this repository and save it into a desired location
+   1. ##### Open the scipt _Deconvolution.ipynb_ and select the previously created _tf3.10_ kernel
