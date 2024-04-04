@@ -113,5 +113,6 @@ class FOV:
         try:
             from pprint import pprint
             pprint(vars(self))
+            return(vars(self))
         except ImportError as e:            
             print(vars(self))
