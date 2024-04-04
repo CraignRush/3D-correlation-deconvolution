@@ -6,7 +6,7 @@ Actually, this code could be improved by using only its PSF-generation capabilit
 The most complicated part is probably the installation of GPU-supported tensorflow. For linux machines, it should be straight forward by installing the Nvidia drivers (same link as for winows below) and installing ```pip install tensorflow[and-cuda]```
 
 
-## Installation of GPU/CUDA-support on a windows 10 (or higher) machine, and with Visual Studio Code
+## Installation of GPU/CUDA-support on a windows 10 (or higher) machine
 This is not the typical installation required for tensorflow as here: https://www.tensorflow.org/install/pip. However, these tutorials didn't work for me properly (and according to the number of stackoverflow articles a bunch of others...)
 
 1. #### Install the recent Nvidia drivers
@@ -84,13 +84,32 @@ This is not the typical installation required for tensorflow as here: https://ww
     # Verify the install uses GPU (this command should return a list of GPU devices):
     python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
      ```
+## Adding external files or network drives
+   In case your data is stored on an external drive that i not mounted per default into WSL, we have to add it first.
+   ```sh
+   sudo mount -t drvfs <INPUT FOLDER> /mnt/<FOLDER IN WSL2>
+   #Example: sudo mount -t drvfs '//samba-pool-pool-plitzko3.biochem.mpg.de/pool-plitzko3' /mnt/plitzko3   
+   ```
+
+   CAVEAT: If you execute this command in the WSL, the drive has to be remounted every time you restart. To make it persistent, add the command from above to the very end of your ```~/.bashrc``` file.
+   ```sh
+   sudo nano ~/.bashrc
+   #put your sudo mount -t drvfs <INPUT FOLDER> /mnt/<FOLDER IN WSL2> at the very end
+   source ~/.bashrc #to reload your .bashrc
+   ```
 
    ### If that worked, great, you now can work on your GPU! :D
 
    ### But we still need a code editor to run our scripts:
 
+## Installing VS Code support
    1. ##### Install VS Code as usual on your windows machine
    1. ##### Add the extensions "Jupyter" and "Python" (both from microsoft)
+   ![alt text](doc/img/ext.png)
    1. ##### Click onto the green button in the bottom left corner and connect to the WSL
+   ![alt text](doc/img/WSL.png)
    1. ##### Now you can clone this repository and save it into a desired location
+   ![alt text](doc/img/git.png)
    1. ##### Open the scipt _Deconvolution.ipynb_ and select the previously created _tf3.10_ kernel
+   ![alt text](doc/img/kernel1.png)
+   ![alt text](doc/img/kernel2.png)
