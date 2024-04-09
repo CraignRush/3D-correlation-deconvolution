@@ -4,6 +4,8 @@ from readlif.reader import LifFile
 from readlif.utilities import get_xml
 import xmltodict
 
+
+# @HACK Add a parameter to select for a certain name
 class FOV:
     def __init__(self,lif_path, FOV_num):
         self.FOV_num = FOV_num
