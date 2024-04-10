@@ -1,0 +1,23 @@
+{
+    "m": 52.5,
+    "min_wavelength": 0.436,
+    "na": 0.9,
+    "ng": null,
+    "ng0": 1,
+    "ni": null,
+    "ni0": 1.0,
+    "ns": 1,
+    "num_basis": 100,
+    "num_samples": 1000,
+    "oversampling": 2,
+    "pz": 0,
+    "res_axial": 0.29250256410256414,
+    "res_lateral": 0.084748486328125,
+    "size_x": 2048,
+    "size_y": 2048,
+    "size_z": 39,
+    "tg": null,
+    "tg0": 0,
+    "ti0": 280.0,
+    "wavelength": 0.5115
+}
