@@ -74,9 +74,9 @@ class FOV:
     def get_channel_stack(self,channel_num=0,all_channels=False):
         self.lif_stack = self.lif_file.get_image(self.tileset_index + self.FOV_num)
         if all_channels:
-            return np.array([[i for i in self.lif_stack.get_iter_z(t=0, c=chan)] for chan in range(self.lif_stack.channels)])
+            return np.array([[np.array(i) for i in self.lif_stack.get_iter_z(t=0, c=chan)] for chan in range(self.lif_stack.channels)])
         else:
-            return np.array([[i for i in self.lif_stack.get_iter_z(t=0, c=channel_num)]])
+            return np.array([np.array(i) for i in self.lif_stack.get_iter_z(t=0, c=channel_num)])
 
     def get_FOV_count(self):
         return len(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element'][self.tileset_index]['Children']['Element'])
