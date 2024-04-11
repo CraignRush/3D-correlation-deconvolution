@@ -1,3 +1,4 @@
+# %%
 import pandas as pd
 import numpy as np
 from readlif.reader import LifFile
@@ -14,10 +15,14 @@ class FOV:
         self.parse_lif_header(lif_path)
 
         tilescans=[]         # @TODO find tilescan with Pos or FOV
-        for i, el in enumerate(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']):
-            print(el)
-            if 'TileScan' in el['@Name']:
-                tilescans.append([i,el])
+        if type(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']) is list:
+            self.multiAcquisitionFile = True
+            for i, el in enumerate(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']):
+                if 'TileScan' in el['@Name']:
+                    tilescans.append([i,el])
+        else: 
+            self.multiAcquisitionFile = False
+            tilescans.append([0,self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']['@Name']]) 
 
         if len(tilescans) > 1:  # @TODO check for Pos or FOV string            
             for el in tilescans:
@@ -31,10 +36,17 @@ class FOV:
             Exception("Error, I couldn't detect any TileScans containing 'FOV' or 'Pos'")
 
         self.FOV_count = self.get_FOV_count()
+        if self.multiAcquisitionFile:
+            self.selected_FOV = self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element'][self.tileset_index]['Children']['Element'][FOV_num]
+        else:            
+            self.selected_FOV = self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']['Children']['Element'][FOV_num]
 
-        self.selected_FOV = self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element'][self.tileset_index]['Children']['Element'][FOV_num]
+        for i in range(len(self.selected_FOV['Data']['Image']['Attachment'])):
+            if 'ATLConfocalSettingDefinition' in self.selected_FOV['Data']['Image']['Attachment'][i]:
+                self.attachment_num = i
+                break
 
-        microscope_params = self.selected_FOV['Data']['Image']['Attachment'][4]['ATLConfocalSettingDefinition'] #Small helper for dict depth
+        microscope_params = self.selected_FOV['Data']['Image']['Attachment'][self.attachment_num]['ATLConfocalSettingDefinition'] #Small helper for dict depth
         self.FOV_name = self.selected_FOV['@Name']
         self.NA = float(microscope_params['@NumericalAperture'])
         self.mag = float(microscope_params['@Magnification'])
@@ -59,28 +71,37 @@ class FOV:
 
 
 
-        self.microscope = self.selected_FOV['Data']['Image']['Attachment'][4]['@SystemTypeName']
+        self.microscope = self.selected_FOV['Data']['Image']['Attachment'][self.attachment_num]['@SystemTypeName']
         if self.microscope == 'TCS SP8':
             self.working_distance_mm = 0.28
         
-        self.fluo_channels = 0
-        self.set_channels(microscope_params)
-
         self.lif_file = LifFile(lif_path) # @TODO wrap with execption handler
+        
+        self.fluo_channels = []
+        self.set_channels(microscope_params)
+        self.num_channels = self.get_image().channels
+
 
         del self.param_dict
 
+    def get_image(self):
+        return self.lif_file.get_image(self.tileset_index + self.FOV_num)
         
         
     def get_channel_stack(self,channel_num=0,all_channels=False):
         self.lif_stack = self.lif_file.get_image(self.tileset_index + self.FOV_num)
         if all_channels:
             return np.array([[np.array(i) for i in self.lif_stack.get_iter_z(t=0, c=chan)] for chan in range(self.lif_stack.channels)])
+        elif len(channel_num) > 1:
+            return np.array([[np.array(i) for i in self.lif_stack.get_iter_z(t=0, c=chan)] for chan in channel_num])
         else:
             return np.array([np.array(i) for i in self.lif_stack.get_iter_z(t=0, c=channel_num)])
 
     def get_FOV_count(self):
-        return len(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element'][self.tileset_index]['Children']['Element'])
+        if self.multiAcquisitionFile:
+            return len(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element'][self.tileset_index]['Children']['Element'])
+        else:
+            return len(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']['Children']['Element'])
 
     def parse_lif_header(self,lif_path=None):
         if lif_path is not None:
@@ -90,6 +111,7 @@ class FOV:
         return self.param_dict
     
     def set_channels(self,FOV_params):
+        #@FIXME there is an error, there are more channels detected than are active. Maybe a sequnce thingy...
             self.channels = [{'number': 0,
                               'name': "",
                               'scan_type': '',
@@ -98,12 +120,14 @@ class FOV:
                               } for i in range(len(FOV_params['DetectorList']['Detector']))]
             for c in range(len(FOV_params['DetectorList']['Detector'])):
                 chan_params = dict(FOV_params['DetectorList']['Detector'][c])
+                #if chan_params['@IsActive'] == '0':
+                #    continue
                 self.channels[c]['number'] = c
                 self.channels[c]['name'] = chan_params['@Name'] 
                 self.channels[c]['scan_type'] = chan_params['@ScanType']    
                 self.channels[c]['gain'] = float(chan_params['@Gain'])
                 if chan_params['@ScanType']  == 'Internal':
-                    self.fluo_channels += 1
+                    self.fluo_channels.append(self.channels[c]['number'])
 
             for b in range(len(FOV_params['Spectro']['MultiBand'])):
                 if type(FOV_params['Spectro']['MultiBand'][b]) is dict:
