@@ -15,6 +15,7 @@ class FOV:
 
         tilescans=[]         # @TODO find tilescan with Pos or FOV
         for i, el in enumerate(self.param_dict['LMSDataContainerHeader']['Element']['Children']['Element']):
+            print(el)
             if 'TileScan' in el['@Name']:
                 tilescans.append([i,el])
 
