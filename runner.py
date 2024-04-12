@@ -1,21 +1,27 @@
 ################################################################################################################
+# get an interactive bash on 93xx and execute the deconvolution:
+# 1. ssh hpcl9301
+# 1. Move to a directory where you want to execute the code from
+# 1. git clone https://github.com/CraignRush/3D-correlation-deconvonvolution
+# 1. srun --nodes=1  --partition=p.hpcl93 --ntasks-per-node=1  --gres=gpu:4  --time=01:00:00 --pty bash -i
+# 1. module load FLOWDEC
+# 1. which python 
+#   --> should yield /fs/pool/pool-bmapps/hpcl8/app/soft/FLOWDEC/12-04-2024/conda3/envs/flowdec/bin/python
+# 1. "Plugin the correct paths below"
+# 1. python runner.py
+
 
 # Set directory of image stack
 file_pattern = '/fs/pool/pool-plitzko3/Johann/03-Data/04-LightMicroscopy/EMBO_course_decon_testing/RAGE_01.lif'#
 #'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240402_Yeast_CA_GE_05/CA_GE_05_tiles.lif'
-output_folder = '/fs/pool/pool-plitzko3/Johann/03-Data/04-LightMicroscopy/EMBO_course_decon_testing/decon_flowdec/'
+output_folder = '/fs/pool/pool-plitzko3/Johann/03-Data/04-LightMicroscopy/EMBO_course_decon_testing/'
 #'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240402_Yeast_CA_GE_05/'#
 LIFFILE = True
 
 ##########################################################
+filter_sigma = 1.5 # this parameter controls the blurring after deconvolution to 
 
-
-
-
-
-
-
-
+### DON'T MODIFY ANYTHING BELOW HERE ###
 # %%
 import logging, sys
 LOG_LEVEL = logging.INFO
@@ -38,12 +44,9 @@ from skimage import exposure, io
 from flowdec import data as tfd_data
 from flowdec import psf as tfd_psf
 from flowdec import restoration as tfd_restoration
-from skimage.transform import rescale
+from scipy.ndimage import gaussian_filter
 from skimage.metrics import mean_squared_error, peak_signal_noise_ratio, structural_similarity
 import numpy as np
-import ipywidgets as widgets
-import matplotlib.pyplot as plt
-from pprint import pprint
 
 from FOV import FOV
 # %%
@@ -63,23 +66,20 @@ logging.info("Current File: {}".format(file_pattern))
 
 if LIFFILE:
     test_fov = FOV(file_pattern,0)
-    logging.info(test_fov.FOV_name)
 
 # %%
 #HACK loop over channels
 
 for fov_num in range(test_fov.FOV_count):    
     test_fov = FOV(file_pattern,fov_num)
-    logging.info(test_fov.FOV_name)
+    logging.info('Processing: ' + test_fov.FOV_name)
 
-    test_stack = test_fov.get_channel_stack(channel_num=range(test_fov.num_channels))
-    logging.info(test_stack.shape)
+    processing_stack = test_fov.get_channel_stack(channel_num=range(test_fov.num_channels))
 
-    if len(test_stack.shape) == 4:
+    if len(processing_stack.shape) == 4:
         MULTICHANNEL = True
     else:
         MULTICHANNEL = False
-    processing_stack = test_stack
     logging.info('Input stack shape: {}, dtype: {}'.format(processing_stack.shape,processing_stack.dtype))
 
     # %%
@@ -130,19 +130,19 @@ for fov_num in range(test_fov.FOV_count):
     imgs = []
     scores = {}
     def observer(img, i, *args):
-        imgs.append(img)
-        scores[i] = {
-        'mse': mean_squared_error(processing_stack, img),
+        #imgs.append(img)
+        #scores[i] = {
+        #'mse': mean_squared_error(processing_stack, img),
         #'ssim': structural_similarity(processing_stack, img, data_range=1), #@TODO find out why SSIM doesn't work as expected
-        'psnr': peak_signal_noise_ratio(processing_stack, img)
-        }
-        
-        if i % 1 == 0:
-            if i == 1:
+        #'psnr': peak_signal_noise_ratio(processing_stack, img)
+        #}        
+        if i % 5 == 0:
+            if i == 5:
                 logging.info('Observing iteration = {} (dtype = {}, max = {:.3f})'.format(i, img.dtype, img.max()))        
-            else:            
+            else:                   
+                logging.info('Observing iteration = {}'.format(i))           
                 #logging.info('Observing iteration = {} (MSE = {:.2f},SSIM = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['ssim'],scores[i]['psnr']))        
-                logging.info('Observing iteration = {} (MSE = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['psnr']))        
+                #logging.info('Observing iteration = {} (MSE = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['psnr']))        
 
 
 # %%
@@ -154,17 +154,21 @@ for fov_num in range(test_fov.FOV_count):
 
     niter = 50
     logging.info("Starting GPU decon!")
-    algo = tfd_restoration.RichardsonLucyDeconvolver(n_dims=3).initialize()#,observer_fn=observer
-    res = np.array([algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=niter) for ch in range(processing_stack.shape[0])])
+    algo = tfd_restoration.RichardsonLucyDeconvolver(n_dims=3,observer_fn=observer).initialize()#
+    res = [algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=niter) for ch in range(processing_stack.shape[0])]
     logging.info("Finished successfully!")
 
     # %%
     if LIFFILE:
         from datetime import datetime    
-        for i in range(res.shape[0]):
-            output_path = output_folder + test_fov.FOV_name + '_ch{:2d}'.format(i) + '_decon.tif'
-            io.imsave(output_path,res[i].data.astype(np.float16))
-            logging.info('Saved file under: {}'.format(output_path))
+        for i in range(len(res)):
+            output_path_stack = output_folder + test_fov.FOV_name + '_ch{:02d}'.format(i) + '_decon.tif'
+            output_path_MIP = output_folder + test_fov.FOV_name + '_ch{:02d}'.format(i) + '_MIP_decon.tif'
+            filtered_stack = gaussian_filter(np.array(res[i].data),filter_sigma)
+            io.imsave(output_path_stack, filtered_stack)
+            io.imsave(output_path_MIP,np.max(filtered_stack,axis=0))
+            logging.info('Saved stack and MIPs  under: {}'.format(output_path_stack))
+            logging.info('A new np.array would have the shape: {} with dtype: {}'.format(np.array(res[:].data).shape),np.array(res[:].data).dtype)
         if LOG_LEVEL == logging.DEBUG:
             io.imsave(output_folder + '_' + test_fov.FOV_name +'_input.tif',processing_stack)
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_decon.tif',res.data.astype(np.float16))
@@ -172,72 +176,4 @@ for fov_num in range(test_fov.FOV_count):
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_MIP_decon.tif',np.max(res.data.astype(np.float16),axis=0))
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name +'_MIP_input.tif',np.max(processing_stack,axis=0))
 
-
-# %%
-if LOG_LEVEL == logging.DEBUG:
-    import pandas as pd
-    pd.DataFrame(scores).T.plot(subplots=True, figsize=(18, 8))
-
-
-    # %%
-    # Visualize the iterations
-    n = 32
-    iters = np.linspace(0, niter-1, num=n).astype(int)
-    fig, axs = plt.subplots(4, 8)
-    axs = axs.ravel()
-    fig.set_size_inches(24, 12)
-    for i, j in enumerate(iters):
-        axs[i].axis('off')
-        axs[i].set_title('iteration {}'.format(j))
-        axs[i].imshow(imgs[j].max(axis=0))
-
-    # %%
-    fig, axs = plt.subplots(1, 2)
-    axs = axs.ravel()
-    fig.set_size_inches(30, 15)
-    center = tuple([slice(None), slice(10, -10), slice(10, -10)])
-    titles = ['Original Image', 'Deconvolved Image']
-    for i, d in enumerate([processing_stack, res.data ]):#res.data
-        img = exposure.adjust_gamma(d[center].max(axis=0), gamma=.2)
-        axs[i].imshow(img, cmap='Spectral_r')
-        axs[i].set_title(titles[i])
-        axs[i].axis('off')
-
-    # %%
-    fig, axs = plt.subplots(1, 2)
-    axs = axs.ravel()
-    fig.set_size_inches(30, 30)
-    xz_projection_data = np.max(processing_stack, axis=1)
-    xz_projection_decon = np.max(res.data, axis=1)
-    titles = ['Original Image', 'Deconvolved Image']
-    for i, d in enumerate([xz_projection_data, xz_projection_decon]):#res.data
-        img = exposure.adjust_gamma(d,gamma=.2)
-        axs[i].imshow(img, cmap='Spectral_r')
-        axs[i].set_title(titles[i])
-        axs[i].axis('off')
-
-    # %%
-    # Function to plot a selectable image from the stack
-
-    def plot_image(i):
-        fig,(ax1,ax2) = plt.subplots(1,2, figsize=(20,10))
-        ax1.imshow(exposure.adjust_gamma(processing_stack[i, slice(10, -10), slice(10, -10)],gamma=.2), cmap='Spectral_r')#)'gray'
-        ax2.imshow(exposure.adjust_gamma(res.data[i, slice(10, -10), slice(10, -10)],gamma=.2), cmap='Spectral_r')#'Spectral_r')'gray'
-        ax2.axis('off')
-        fig.show()
-
-    # Create a slider widget
-    slider = widgets.IntSlider(
-        value=0,
-        min=0,
-        max=res.data.shape[0] - 1,
-        step=1,
-        description='Image Index:',
-        continuous_update=True
-    )
-
-    widgets.interactive(plot_image, i=slider) # Create an interactive widget
-
-
-
-
+    break
