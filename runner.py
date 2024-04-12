@@ -157,18 +157,23 @@ for fov_num in range(test_fov.FOV_count):
     algo = tfd_restoration.RichardsonLucyDeconvolver(n_dims=3,observer_fn=observer).initialize()#
     res = [algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=niter) for ch in range(processing_stack.shape[0])]
     logging.info("Finished successfully!")
+    decon_list = [res[i].data for i in range(len(res))]
+    decon_stack = np.array(decon_list)    
+    logging.info('A new np.array would have the shape: {} with dtype: {}'.format(decon_stack.shape,decon_stack.dtype))
 
     # %%
     if LIFFILE:
         from datetime import datetime    
-        for i in range(len(res)):
+        
+        output_path_MIP = output_folder + test_fov.FOV_name + '_MIP_decon.tif'
+        io.imsave(output_path_MIP,np.max(decon_stack,axis=1))        
+        logging.info('Saved MIPs under: {}'.format(output_path_MIP))
+        for i in range(decon_stack.shape[0]):
             output_path_stack = output_folder + test_fov.FOV_name + '_ch{:02d}'.format(i) + '_decon.tif'
-            output_path_MIP = output_folder + test_fov.FOV_name + '_ch{:02d}'.format(i) + '_MIP_decon.tif'
             filtered_stack = gaussian_filter(np.array(res[i].data),filter_sigma)
             io.imsave(output_path_stack, filtered_stack)
-            io.imsave(output_path_MIP,np.max(filtered_stack,axis=0))
-            logging.info('Saved stack and MIPs  under: {}'.format(output_path_stack))
-            logging.info('A new np.array would have the shape: {} with dtype: {}'.format(np.array(res[:].data).shape),np.array(res[:].data).dtype)
+            logging.info('Saved stack under: {}'.format(output_path_stack))
+        logging.info('Not resliced yet!')
         if LOG_LEVEL == logging.DEBUG:
             io.imsave(output_folder + '_' + test_fov.FOV_name +'_input.tif',processing_stack)
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_decon.tif',res.data.astype(np.float16))
