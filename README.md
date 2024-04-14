@@ -1,12 +1,60 @@
 # 3D-correlation-deconvonvolution
-This is a lightweight repository (with the _awesome_ code of https://github.com/hammerlab/flowdec/) for the deconvolution of a Leica *.lif file comprised of individual multichannel stacks per FOV.
+This is a lightweight repository (with the _awesome_ code of https://github.com/hammerlab/flowdec/) for the deconvolution of a Leica *.lif file comprised of individual multichannel stacks per FOV. It was built for the 2024 EMBO "In situ structural biology by Cryo-FIB and Cryo-ET". However, this code should be freely adaptable to deconvolve any image stack in the (c)zyx format if the microscope parameters for PSF generation are known. 
+If you would like to use different formats or have questions, please don't hesitate to reach out to jbrenner@biochem.mpg.de.
 
-Actually, this code could be improved by using only its PSF-generation capabilities and then the deconvolution of cucim.skimage.resotration.richardson_lucy! However, I never had time to go down that rabbit hole...
+PS: Actually, this code could be improved by using only its PSF-generation capabilities and then the deconvolution of cucim.skimage.restoration.richardson_lucy()! However, I never had time to go down that rabbit hole...
 
-The most complicated part is probably the installation of GPU-supported tensorflow. For linux machines, it should be straight forward by installing the Nvidia drivers (same link as for winows below) and installing ```pip install tensorflow[and-cuda]```
+# Running deconvolution
+To run a deconvolution there are two options: you can use a) the [runner.py](runner.py) script to run a batch deconvolution or b) the [Deconvolution.ipynb](Deconvolution.ipynb) to test single stacks in an ipython notebook environment. Also there is a [plotting_notebook](plotting_notebook.ipynb) for displaying stack in various manners.
+For the runner.py notebook, only the `file_pattern` and `output_folder` paths have to be set. Please be aware that the running script only works for *.lif files currently.
+
+## Running the scripts on the MPI for Biochemistry visualization cluster
+In order to execute the runner.py script on a graphics card cluster of the MPI, we only need to login, load the module and execute the runner. For external users, please refer to the [miniconda installation section](#installation-of-the-conda-environment)
+
+```sh
+# Log into a gpu cluster
+ssh hpcl9301
+
+# Move to a directory where you want to execute the code from
+
+git clone https://github.com/CraignRush/3D-correlation-deconvonvolution
+
+# Reserve a node and open a bash with the at least one gpu 
+srun --nodes=1  --partition=p.hpcl93 --ntasks-per-node=1  --gres=gpu:4  --time=01:00:00 --pty bash -i
+
+# Load the module FLOWDEC
+module load FLOWDEC
+
+#sanity check the used python version
+which python 
+#   --> should yield /fs/pool/pool-bmapps/hpcl8/app/soft/FLOWDEC/12-04-2024/conda3/envs/flowdec/bin/python
+
+# Create an output folder
+mkdir <put your folder path here>
+
+#
+# Insert the correct paths to your lif and output folder in the runner.py script
+#
+
+# Start the execution with:
+python runner.py
+```
 
 
-## Installation of GPU/CUDA-support on a windows 10 (or higher) machine
+
+# Installation
+The GPU-accellerated installation has been carried out on [Windows 11 machines using the Windows Subsystem for Linux 2 (WSL2)](#installation-on-a-windows-10-or-higher-machine) and [linux machines](#installation-on-linux), please refer to the appropriate subsections.
+
+The most complicated part is probably the installation of GPU-supported tensorflow. Installing it from the conda environment with ```conda install conda-forge::tensorflow``` proved as the easiest solution. However, this will only work if an appropriate toolchain of CUDA drivers is installed. (For more details look into https://www.tensorflow.org/install/pip). A more detailed explanation can also be found in the Windows tutorial.
+
+Once you installed all drivers, you should proceed with installing miniconda and the conda setup file [environment.yml](environment.yml) from this repo. This could in principle work already with any toolchain but one might have to adjust the tensorflow[and-cuda] 
+
+
+
+## Installation on linux
+For linux machines, it should be straight forward by installing the Nvidia drivers (same link as for winows below) and installing ```pip install tensorflow[and-cuda]```
+
+## Installation on a windows 10 (or higher) machine
 This is not the typical installation required for tensorflow as here: https://www.tensorflow.org/install/pip. However, these tutorials didn't work for me properly (and according to the number of stackoverflow articles a bunch of others...)
 
 1. #### Install the recent Nvidia drivers
