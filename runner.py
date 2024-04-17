@@ -160,23 +160,27 @@ for fov_num in range(test_fov.FOV_count):
 #
 # In case you experience CUDA memory errors, remove the observer and add pad_mode='none'
 
-    logging.info("Starting GPU decon!")
+    logging.info("Starting GPU decon for {}".format(test_fov.FOV_name))
     res = [algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=iterations) for ch in range(processing_stack.shape[0])]
     logging.info("Finished successfully!")
     decon_list = [res[i].data for i in range(len(res))]
     decon_stack = np.array(decon_list)    
-    logging.info('A new np.array would have the shape: {} with dtype: {}'.format(decon_stack.shape,decon_stack.dtype))
+    #logging.info('A new np.array would have the shape: {} with dtype: {}'.format(decon_stack.shape,decon_stack.dtype))
 
     # %%
     if LIFFILE:
-        from datetime import datetime    
+        from datetime import datetime  
+        from flm_utility_functions import tdct_reslice  
         
         output_path_MIP = output_folder + test_fov.FOV_name + '_MIP_decon.tif'
         io.imsave(output_path_MIP,np.max(decon_stack,axis=1))        
         logging.info('Saved MIPs under: {}'.format(output_path_MIP))
         for i in range(decon_stack.shape[0]):
             output_path_stack = output_folder + test_fov.FOV_name + '_ch{:02d}'.format(i) + '_decon.tif'
-            filtered_stack = gaussian_filter(np.array(res[i].data),filter_sigma)
+            step_xy = test_fov.resolution[test_fov.resolution['dimension_name'] == 'x']['resolution_nm'][0]
+            step_z = test_fov.resolution[test_fov.resolution['dimension_name'] == 'z']['resolution_nm'][0]
+            resliced_stack = tdct_reslice(res[i].data, step_z, step_xy, interpolationmethod='linear', save_img=False)            
+            filtered_stack = gaussian_filter(np.array(resliced_stack),filter_sigma)
             io.imsave(output_path_stack, filtered_stack)
             logging.info('Saved stack under: {}'.format(output_path_stack))
         logging.info('Not resliced yet!')
