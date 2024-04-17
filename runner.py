@@ -20,7 +20,7 @@ LIFFILE = True
 
 ##########################################################
 filter_sigma = 1.5 # this parameter controls the blurring after deconvolution 
-iterations = 1 # this parameters controls the deconvolution iterations
+iterations = 100 # this parameters controls the deconvolution iterations
 
 ### DON'T MODIFY ANYTHING BELOW HERE ###
 # %%
@@ -183,7 +183,7 @@ for fov_num in range(test_fov.FOV_count):
             filtered_stack = gaussian_filter(np.array(resliced_stack),filter_sigma)
             io.imsave(output_path_stack, filtered_stack.astype(np.float16))
             logging.info('Saved stack under: {}'.format(output_path_stack))
-        logging.info('Resliced to: {} nm!'.format(step_xy))
+        logging.info('Resliced to: {:.2f} nm!'.format(step_xy))
         if LOG_LEVEL == logging.DEBUG:
             io.imsave(output_folder + '_' + test_fov.FOV_name +'_input.tif',processing_stack)
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_decon.tif',res.data.astype(np.float16))
@@ -191,4 +191,3 @@ for fov_num in range(test_fov.FOV_count):
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_MIP_decon.tif',np.max(res.data.astype(np.float16),axis=0))
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name +'_MIP_input.tif',np.max(processing_stack,axis=0))
 
-#    break
