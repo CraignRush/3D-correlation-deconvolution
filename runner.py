@@ -45,13 +45,15 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 
 # %%
 #HACK fix import and order
-from skimage import exposure, io
+from skimage import exposure, io, img_as_uint
 from flowdec import data as tfd_data
 from flowdec import psf as tfd_psf
 from flowdec import restoration as tfd_restoration
 from scipy.ndimage import gaussian_filter
 from skimage.metrics import mean_squared_error, peak_signal_noise_ratio, structural_similarity
 import numpy as np
+from datetime import datetime  
+from flm_utility_functions import tdct_reslice  
 
 from FOV import FOV
 # %%
@@ -169,9 +171,7 @@ for fov_num in range(test_fov.FOV_count):
 
     # %%
     if LIFFILE:
-        from datetime import datetime  
-        from flm_utility_functions import tdct_reslice  
-        
+       
         output_path_MIP = output_folder + test_fov.FOV_name + '_MIP_decon.tif'
         io.imsave(output_path_MIP,np.max(decon_stack,axis=1))        
         logging.info('Saved MIPs under: {}'.format(output_path_MIP))
@@ -181,7 +181,7 @@ for fov_num in range(test_fov.FOV_count):
             step_z = test_fov.resolution[test_fov.resolution['dimension_name'] == 'z']['resolution_nm'].iloc[0]
             resliced_stack = tdct_reslice(res[i].data, step_z, step_xy, interpolationmethod='linear', save_img=False)            
             filtered_stack = gaussian_filter(np.array(resliced_stack),filter_sigma)
-            io.imsave(output_path_stack, filtered_stack.astype(np.float16))
+            io.imsave(output_path_stack, img_as_uint(exposure.recale_intensity(filtered_stack,out_range='float')))
             logging.info('Saved stack under: {}'.format(output_path_stack))
         logging.info('Resliced to: {:.2f} nm!'.format(step_xy))
         if LOG_LEVEL == logging.DEBUG:

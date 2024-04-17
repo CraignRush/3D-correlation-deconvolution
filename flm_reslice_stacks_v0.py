@@ -43,7 +43,7 @@ step_xy_orig = 84.651 # Output focus step (xy step size, same unit as step_in)
 step_unit_um = 1e-3 # step unit in microns, i.e. 1e-3 for nm
 bin_factor = 1 # Factor for binning in xy before reslicing
 
-in_dir = Path(r'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240408_Yeast_CA_GE_14/batch_decon')
+in_dir = Path(r'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240416_Yeast_CA_GE_18/huygens_decon/')
 out_dir = in_dir / 'resliced'
 MIP_dir = in_dir / 'MIP_decon'
 MIP_tif_dir = in_dir / 'MIP_decon_tif'
@@ -55,7 +55,7 @@ hist_clip_factor = 0.3 # histogram clipping factor for enhancing signal, only im
 
 # If FOVs are present multiple times since multiple checkpoints were taken, make sure that they are all found.
 # Can also be used if multiple grids are in one folder
-FOV_search_term = '_(FOV\d*)_'
+FOV_search_term = '(FOV\d*)'
 checkpoints = False
 checkpoint_search_term = '_(checkpoints\d*)_'
 FOV_before_checkpoint = False
@@ -94,7 +94,7 @@ for channel in channels_to_process:
         if file.endswith('_resliced.tif'): # Avoid double reslicing
             continue
         FOV = re.search(FOV_search_term, file)
-        FOV = FOV.group(1)
+        FOV = FOV.group(0)
         
         if checkpoints:
             checkpoint = re.search(checkpoint_search_term, file)
@@ -138,7 +138,7 @@ for FOV in FOV_list:    # loop over FOVs
             fname_out = fname_out.as_posix()
             log.debug('Resliced stack file: {}'.format(fname_out))
             # Reslice:
-            tdct_reslice(stack, step_z, step_xy, interpolationmethod='linear', save=True,
+            tdct_reslice(stack, step_z, step_xy, interpolationmethod='linear', save_img=True,
                fname_out=fname_out)
         # add to stack list
         stack_list.append(stack) # stack list contains all stacks before reslicing (for MIP)
