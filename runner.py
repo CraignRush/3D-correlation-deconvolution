@@ -20,7 +20,7 @@ LIFFILE = True
 
 ##########################################################
 filter_sigma = 1.5 # this parameter controls the blurring after deconvolution 
-iterations = 100 # this parameters controls the deconvolution iterations
+iterations = 1 # this parameters controls the deconvolution iterations
 
 ### DON'T MODIFY ANYTHING BELOW HERE ###
 # %%
@@ -177,11 +177,11 @@ for fov_num in range(test_fov.FOV_count):
         logging.info('Saved MIPs under: {}'.format(output_path_MIP))
         for i in range(decon_stack.shape[0]):
             output_path_stack = output_folder + test_fov.FOV_name + '_ch{:02d}'.format(i) + '_decon.tif'
-            step_xy = test_fov.resolution[test_fov.resolution['dimension_name'] == 'x']['resolution_nm'][0]
-            step_z = test_fov.resolution[test_fov.resolution['dimension_name'] == 'z']['resolution_nm'][0]
+            step_xy = test_fov.resolution[test_fov.resolution['dimension_name'] == 'x']['resolution_nm'].iloc[0]
+            step_z = test_fov.resolution[test_fov.resolution['dimension_name'] == 'z']['resolution_nm'].iloc[0]
             resliced_stack = tdct_reslice(res[i].data, step_z, step_xy, interpolationmethod='linear', save_img=False)            
             filtered_stack = gaussian_filter(np.array(resliced_stack),filter_sigma)
-            io.imsave(output_path_stack, filtered_stack)
+            io.imsave(output_path_stack, filtered_stack.astype(np.float16))
             logging.info('Saved stack under: {}'.format(output_path_stack))
         logging.info('Not resliced yet!')
         if LOG_LEVEL == logging.DEBUG:
