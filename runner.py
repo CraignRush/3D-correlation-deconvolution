@@ -183,7 +183,7 @@ for fov_num in range(test_fov.FOV_count):
             filtered_stack = gaussian_filter(np.array(resliced_stack),filter_sigma)
             io.imsave(output_path_stack, filtered_stack.astype(np.float16))
             logging.info('Saved stack under: {}'.format(output_path_stack))
-        logging.info('Not resliced yet!')
+        logging.info('Resliced to: {} nm!'.format(step_xy))
         if LOG_LEVEL == logging.DEBUG:
             io.imsave(output_folder + '_' + test_fov.FOV_name +'_input.tif',processing_stack)
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_decon.tif',res.data.astype(np.float16))
