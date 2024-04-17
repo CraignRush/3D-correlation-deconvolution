@@ -12,15 +12,15 @@
 
 
 # Set directory of image stack
-file_pattern = '/fs/pool/pool-plitzko3/Johann/03-Data/04-LightMicroscopy/EMBO_course_decon_testing/RAGE_01.lif'#
+file_pattern = '/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240416_Yeast_CA_GE_18/20240416_Yeast_CA_GE_18_tiles.lif'#
 #'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240402_Yeast_CA_GE_05/CA_GE_05_tiles.lif'
-output_folder = '/fs/pool/pool-plitzko3/Johann/03-Data/04-LightMicroscopy/EMBO_course_decon_testing/'
+output_folder = '/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240416_Yeast_CA_GE_18/20240416_Yeast_CA_GE_18_decon/'
 #'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240402_Yeast_CA_GE_05/'#
 LIFFILE = True
 
 ##########################################################
-filter_sigma = 1.5 # this parameter controls the blurring after deconvolution to 
-
+filter_sigma = 1.5 # this parameter controls the blurring after deconvolution 
+iterations = 100 # this parameters controls the deconvolution iterations
 ### DON'T MODIFY ANYTHING BELOW HERE ###
 # %%
 import logging, sys
@@ -31,6 +31,10 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 
 # %%
 import os
+if not os.path.isdir(output_folder):
+    logging.info("Couldn't find the output directory!")
+    sys.exit()
+
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 os.environ['NUMEXPR_MAX_THREADS'] = '256'
@@ -152,10 +156,9 @@ for fov_num in range(test_fov.FOV_count):
 #
 # In case you experience CUDA memory errors, remove the observer and add pad_mode='none'
 
-    niter = 50
     logging.info("Starting GPU decon!")
     algo = tfd_restoration.RichardsonLucyDeconvolver(n_dims=3,observer_fn=observer).initialize()#
-    res = [algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=niter) for ch in range(processing_stack.shape[0])]
+    res = [algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=iterations) for ch in range(processing_stack.shape[0])]
     logging.info("Finished successfully!")
     decon_list = [res[i].data for i in range(len(res))]
     decon_stack = np.array(decon_list)    
@@ -181,4 +184,4 @@ for fov_num in range(test_fov.FOV_count):
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name + '_MIP_decon.tif',np.max(res.data.astype(np.float16),axis=0))
             io.imsave('./' + datetime.today().strftime("%Y-%m-%d_%H-%M-%S_")  + test_fov.FOV_name +'_MIP_input.tif',np.max(processing_stack,axis=0))
 
-    break
+#    break

@@ -11,13 +11,13 @@
     "num_samples": 1000,
     "oversampling": 2,
     "pz": 0,
-    "res_axial": 0.29250256410256414,
-    "res_lateral": 0.084748486328125,
+    "res_axial": 0.2928780487804878,
+    "res_lateral": 0.0844685546875,
     "size_x": 2048,
     "size_y": 2048,
-    "size_z": 39,
+    "size_z": 41,
     "tg": null,
     "tg0": 0,
     "ti0": 280.0,
-    "wavelength": 0.5115
+    "wavelength": 0.514
 }
