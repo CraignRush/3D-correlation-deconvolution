@@ -21,6 +21,7 @@ LIFFILE = True
 ##########################################################
 filter_sigma = 1.5 # this parameter controls the blurring after deconvolution 
 iterations = 100 # this parameters controls the deconvolution iterations
+
 ### DON'T MODIFY ANYTHING BELOW HERE ###
 # %%
 import logging, sys
@@ -56,6 +57,27 @@ from FOV import FOV
 # %%
 logging.info("Current File: {}".format(file_pattern))
 
+
+# %%
+# In case your GPU setup allows for a continuous oberserver or saving of intermediate steps (requires more memory, and is not used here)
+imgs = []
+scores = {}
+def observer(img, i, *args):
+    #imgs.append(img)
+    #scores[i] = {
+    #'mse': mean_squared_error(processing_stack, img),
+    #'ssim': structural_similarity(processing_stack, img, data_range=1), #@TODO find out why SSIM doesn't work as expected
+    #'psnr': peak_signal_noise_ratio(processing_stack, img)
+    #}        
+    if i % 5 == 0:
+        if i == 5:
+            logging.info('Observing iteration = {} (dtype = {}, max = {:.3f})'.format(i, img.dtype, img.max()))        
+        else:                   
+            logging.info('Observing iteration = {}'.format(i))           
+            #logging.info('Observing iteration = {} (MSE = {:.2f},SSIM = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['ssim'],scores[i]['psnr']))        
+            #logging.info('Observing iteration = {} (MSE = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['psnr']))        
+
+algo = tfd_restoration.RichardsonLucyDeconvolver(n_dims=3,observer_fn=observer).initialize()#
 
 
 # %%
@@ -129,24 +151,6 @@ for fov_num in range(test_fov.FOV_count):
         ).generate()
         logging.info((psf.shape, psf.dtype))
 
-    # %%
-    # In case your GPU setup allows for a continuous oberserver or saving of intermediate steps (requires more memory, and is not used here)
-    imgs = []
-    scores = {}
-    def observer(img, i, *args):
-        #imgs.append(img)
-        #scores[i] = {
-        #'mse': mean_squared_error(processing_stack, img),
-        #'ssim': structural_similarity(processing_stack, img, data_range=1), #@TODO find out why SSIM doesn't work as expected
-        #'psnr': peak_signal_noise_ratio(processing_stack, img)
-        #}        
-        if i % 5 == 0:
-            if i == 5:
-                logging.info('Observing iteration = {} (dtype = {}, max = {:.3f})'.format(i, img.dtype, img.max()))        
-            else:                   
-                logging.info('Observing iteration = {}'.format(i))           
-                #logging.info('Observing iteration = {} (MSE = {:.2f},SSIM = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['ssim'],scores[i]['psnr']))        
-                #logging.info('Observing iteration = {} (MSE = {:.2f}, PSNR = {:.2f})'.format(i, scores[i]['mse'],scores[i]['psnr']))        
 
 
 # %%
@@ -157,7 +161,6 @@ for fov_num in range(test_fov.FOV_count):
 # In case you experience CUDA memory errors, remove the observer and add pad_mode='none'
 
     logging.info("Starting GPU decon!")
-    algo = tfd_restoration.RichardsonLucyDeconvolver(n_dims=3,observer_fn=observer).initialize()#
     res = [algo.run(tfd_data.Acquisition(data=processing_stack[ch],kernel=psf), niter=iterations) for ch in range(processing_stack.shape[0])]
     logging.info("Finished successfully!")
     decon_list = [res[i].data for i in range(len(res))]
