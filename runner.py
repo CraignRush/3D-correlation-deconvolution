@@ -16,6 +16,9 @@ file_pattern = '/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240416_Yeast_CA_GE_
 #'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240402_Yeast_CA_GE_05/CA_GE_05_tiles.lif'
 output_folder = '/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240416_Yeast_CA_GE_18/20240416_Yeast_CA_GE_18_decon/'
 #'/fs/pool/pool-pub/EMBO/FLM/PreImaged_Yeast/20240402_Yeast_CA_GE_05/'#
+
+stack_naming_pattern = ['Pos','FOV'] #add your naming as you like
+
 LIFFILE = True
 
 ##########################################################
